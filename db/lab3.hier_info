@@ -1,0 +1,99 @@
+|board
+LEDR[0] <= part2:u0.s
+LEDR[1] <= part2:u0.s
+LEDR[2] <= part2:u0.s
+LEDR[3] <= part2:u0.s
+LEDR[4] <= <GND>
+LEDR[5] <= <GND>
+LEDR[6] <= <GND>
+LEDR[7] <= <GND>
+LEDR[8] <= <GND>
+LEDR[9] <= part2:u0.c_out
+SW[0] => SW[0].IN1
+SW[1] => SW[1].IN1
+SW[2] => SW[2].IN1
+SW[3] => SW[3].IN1
+SW[4] => SW[4].IN1
+SW[5] => SW[5].IN1
+SW[6] => SW[6].IN1
+SW[7] => SW[7].IN1
+SW[8] => SW[8].IN1
+SW[9] => ~NO_FANOUT~
+
+
+|board|part2:u0
+a[0] => a[0].IN1
+a[1] => a[1].IN1
+a[2] => a[2].IN1
+a[3] => a[3].IN1
+b[0] => b[0].IN1
+b[1] => b[1].IN1
+b[2] => b[2].IN1
+b[3] => b[3].IN1
+c_in => c_in.IN1
+s[0] <= adder:FA1.s
+s[1] <= adder:FA2.s
+s[2] <= adder:FA3.s
+s[3] <= adder:FA4.s
+c_out[0] <= c_out[0].DB_MAX_OUTPUT_PORT_TYPE
+c_out[1] <= c_out[1].DB_MAX_OUTPUT_PORT_TYPE
+c_out[2] <= c_out[2].DB_MAX_OUTPUT_PORT_TYPE
+c_out[3] <= adder:FA4.c_o
+
+
+|board|part2:u0|adder:FA1
+a => s.IN0
+a => c_o.IN0
+a => c_o.IN0
+b => s.IN1
+b => c_o.IN1
+b => c_o.IN0
+c_i => s.IN1
+c_i => c_o.IN1
+c_i => c_o.IN1
+s <= s.DB_MAX_OUTPUT_PORT_TYPE
+c_o <= c_o.DB_MAX_OUTPUT_PORT_TYPE
+
+
+|board|part2:u0|adder:FA2
+a => s.IN0
+a => c_o.IN0
+a => c_o.IN0
+b => s.IN1
+b => c_o.IN1
+b => c_o.IN0
+c_i => s.IN1
+c_i => c_o.IN1
+c_i => c_o.IN1
+s <= s.DB_MAX_OUTPUT_PORT_TYPE
+c_o <= c_o.DB_MAX_OUTPUT_PORT_TYPE
+
+
+|board|part2:u0|adder:FA3
+a => s.IN0
+a => c_o.IN0
+a => c_o.IN0
+b => s.IN1
+b => c_o.IN1
+b => c_o.IN0
+c_i => s.IN1
+c_i => c_o.IN1
+c_i => c_o.IN1
+s <= s.DB_MAX_OUTPUT_PORT_TYPE
+c_o <= c_o.DB_MAX_OUTPUT_PORT_TYPE
+
+
+|board|part2:u0|adder:FA4
+a => s.IN0
+a => c_o.IN0
+a => c_o.IN0
+b => s.IN1
+b => c_o.IN1
+b => c_o.IN0
+c_i => s.IN1
+c_i => c_o.IN1
+c_i => c_o.IN1
+s <= s.DB_MAX_OUTPUT_PORT_TYPE
+c_o <= c_o.DB_MAX_OUTPUT_PORT_TYPE
+
+
