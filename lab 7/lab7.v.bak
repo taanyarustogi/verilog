@@ -1,0 +1,331 @@
+//
+// This is the template for Part 2 of Lab 7.
+//
+// Paul Chow
+// November 2021
+//
+
+module part2
+	(
+		CLOCK_50,						//	On Board 50 MHz
+		// Your inputs and outputs here
+		KEY,							// On Board Keys
+		// The ports below are for the VGA output.  Do not change.
+		VGA_CLK,   						//	VGA Clock
+		VGA_HS,							//	VGA H_SYNC
+		VGA_VS,							//	VGA V_SYNC
+		VGA_BLANK_N,						//	VGA BLANK
+		VGA_SYNC_N,						//	VGA SYNC
+		VGA_R,   						//	VGA Red[9:0]
+		VGA_G,	 						//	VGA Green[9:0]
+		VGA_B   						//	VGA Blue[9:0]
+	);
+
+	input		CLOCK_50;				//	50 MHz
+	input	[3:0]	KEY;			
+	input [9:0] SW;		
+	// Declare your inputs and outputs here
+	// Do not change the following outputs
+	output			VGA_CLK;   				//	VGA Clock
+	output			VGA_HS;					//	VGA H_SYNC
+	output			VGA_VS;					//	VGA V_SYNC
+	output			VGA_BLANK_N;				//	VGA BLANK
+	output			VGA_SYNC_N;				//	VGA SYNC
+	output	[7:0]	VGA_R;   				//	VGA Red[7:0] Changed from 10 to 8-bit DAC
+	output	[7:0]	VGA_G;	 				//	VGA Green[7:0]
+	output	[7:0]	VGA_B;   				//	VGA Blue[7:0]
+	
+	wire resetn;
+	assign resetn = KEY[0];
+	
+	// Create the colour, x, y and writeEn wires that are inputs to the controller.
+
+	wire [2:0] colour;
+	wire [7:0] x;
+	wire [6:0] y;
+	wire writeEn;
+
+	// Create an Instance of a VGA controller - there can be only one!
+	// Define the number of colours as well as the initial background
+	// image file (.MIF) for the controller.
+	vga_adapter VGA(
+			.resetn(resetn),
+			.clock(CLOCK_50),
+			.colour(colour),
+			.x(x),
+			.y(y),
+			.plot(writeEn),
+			/* Signals for the DAC to drive the monitor. */
+			.VGA_R(VGA_R),
+			.VGA_G(VGA_G),
+			.VGA_B(VGA_B),
+			.VGA_HS(VGA_HS),
+			.VGA_VS(VGA_VS),
+			.VGA_BLANK(VGA_BLANK_N),
+			.VGA_SYNC(VGA_SYNC_N),
+			.VGA_CLK(VGA_CLK));
+		defparam VGA.RESOLUTION = "160x120";
+		defparam VGA.MONOCHROME = "FALSE";
+		defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
+		defparam VGA.BACKGROUND_IMAGE = "black.mif";
+			
+	// Put your code here. Your code should produce signals x,y,colour and writeEn
+	// for the VGA controller, in addition to any other functionality your design may require.
+	circuit c0(
+		.iResetn(resetn),
+		.iPlotBox(KEY[2]),
+		.iBlack(KEY[3]),
+		.iColour(SW[7:9]),
+		.iLoadX(KEY[1]),
+		.iXY_Coord(SW[0:6]),
+		.iClock(CLOCK_50),
+		.oX(x),
+		.oY(y),
+		.oColour(colour),
+		.oPlot(),
+		.oDone()
+	);
+	
+endmodule
+
+module circuit(iResetn,iPlotBox,iBlack,iColour,iLoadX,iXY_Coord,iClock,oX,oY,oColour,oPlot,oDone);
+   parameter X_SCREEN_PIXELS = 8'd160;
+   parameter Y_SCREEN_PIXELS = 7'd120;
+
+   input wire iResetn, iPlotBox, iBlack, iLoadX;
+   input wire [2:0] iColour;
+   input wire [6:0] iXY_Coord;
+   input wire 	    iClock;
+   output wire [7:0] oX;         // VGA pixel coordinates
+   output wire [6:0] oY;
+
+   output wire [2:0] oColour;     // VGA pixel colour (0-7)
+   output wire 	     oPlot;       // Pixel draw enable
+   output wire       oDone;       // goes high when finished drawing frame
+
+   wire ld_x, ld_y, ld_color, draw, resetc, black;
+   wire [7:0] xcount;
+   wire [6:0] ycount;
+
+   control C0(
+	.clk(iClock),
+	.resetn(iResetn),
+	.iLoadX(iLoadX),
+	.iPlotBox(iPlotBox),
+	.iBlack(iBlack),
+	.resetc(resetc),
+	.load_x(ld_x),
+	.load_y(ld_y),
+	.load_color(ld_color),
+	.draw(draw),
+	.plot(oPlot),
+	.done(oDone),
+	.black(black),
+	.xcount(xcount),
+	.ycount(ycount)
+   );
+
+   datapath D0(
+	.clk(iClock),
+	.resetn(iResetn),
+	.coord(iXY_Coord),
+	.in_color(iColour),
+	.load_x(ld_x),
+	.load_y(ld_y),
+	.load_color(ld_color),
+	.draw(draw),
+	.ox(oX),
+	.oy(oY),
+	.ocolor(oColour),
+	.resetc(resetc),
+	.black(black),
+	.xcount(xcount),
+	.ycount(ycount)
+   );
+
+
+endmodule // part2
+
+module control(
+	input clk,
+	input resetn,
+	input iLoadX,
+	input iPlotBox,
+	input iBlack,
+	input resetc,
+	input [7:0] xcount,
+	input [6:0] ycount,
+	output reg load_x,
+	output reg load_y,
+	output reg load_color,
+	output reg draw,
+	output reg plot,
+	output reg done,
+	output reg black
+	);
+
+	reg [2:0] current_state, next_state;
+
+	localparam  S_LOAD_X		= 3'd0,
+			S_LOAD_X_WAIT	= 3'd1,
+			S_LOAD_Y_COLOR	= 3'd2,
+			S_LOAD_WAIT	= 3'd3,
+			S_CYCLE_0	= 3'd4,
+			S_CYCLE_1	= 3'd5,
+			S_CYCLE_2	= 3'd6;
+
+	always@(*)
+	begin: state_table
+		case (current_state)
+			S_LOAD_X: begin
+					if(iLoadX) next_state = S_LOAD_X_WAIT;
+					else if(iBlack) next_state = S_CYCLE_1;
+					else next_state = S_LOAD_X;
+				end
+			S_LOAD_X_WAIT: next_state = iLoadX ? S_LOAD_X_WAIT : S_LOAD_Y_COLOR;
+			S_LOAD_Y_COLOR: next_state = iPlotBox ? S_LOAD_WAIT : S_LOAD_Y_COLOR;
+			S_LOAD_WAIT: next_state = iPlotBox ? S_LOAD_WAIT : S_CYCLE_0;
+			S_CYCLE_0: next_state = resetc ? S_CYCLE_2 : S_CYCLE_0;
+			S_CYCLE_1: begin
+				if (xcount != 4'd8 && ycount != 4'd5) next_state = S_CYCLE_1;
+				else next_state = S_CYCLE_2;
+				end
+			S_CYCLE_2: next_state = S_LOAD_X;
+			default: next_state = S_LOAD_X;
+		endcase
+	end
+
+	always@(*)
+	begin: enable_signals
+		load_x = 1'b0;
+		load_y = 1'b0;
+		load_color = 1'b0;
+		draw = 1'b0;
+		plot = 1'b0;
+		black = 1'b0;
+		begin 
+			if (iBlack || iPlotBox) done = 1'b0;
+			else done = done;
+		end
+
+		case (current_state)
+			S_LOAD_X: begin
+				load_x = 1'b1;
+				end
+			S_LOAD_Y_COLOR: begin
+				load_y = 1'b1;
+				load_color = 1'b1;
+				end
+			S_CYCLE_0: begin
+				plot = 1'b1;
+				draw = 1'b1;
+				done = 1'b0;
+				end
+			S_CYCLE_1: begin
+				black = 1'b1;
+				end
+			S_CYCLE_2: begin
+				done = 1'b1;
+				end
+		endcase
+	end
+
+	always@(posedge clk)
+	begin: state_FFs
+		if(!resetn)
+			current_state <= S_LOAD_X;
+		else
+			current_state <= next_state;
+	end
+endmodule
+
+module datapath(	
+	input clk, 
+	input resetn,
+	input [6:0] coord, 
+	input [2:0] in_color,
+
+	input load_x,
+	input load_y,
+	input load_color,
+	input draw,
+	input black,
+
+	output reg resetc,
+	output reg [7:0] ox,
+	output reg [6:0] oy,
+	output reg [2:0] ocolor,
+	output reg [7:0] xcount,
+	output reg [6:0] ycount
+	);
+
+	reg [7:0] x;
+	reg [6:0] y;
+	reg [2:0] color;
+	reg [3:0] counter;
+
+	always@(posedge clk) 
+	begin
+		if(!resetn) begin
+			x <= 8'b0;
+			y <= 7'b0;
+			color <= 3'b0;		
+		end
+		else begin
+			if(load_x)
+				x <= coord;
+				ox <= coord;
+			if(load_y)
+				y <= coord;
+				oy <= coord;
+			if(load_color)
+				color <= in_color;
+				ocolor <= in_color;
+		end
+	end
+
+	always@(posedge clk)
+	begin
+		if (!resetn) begin
+			ox <= 8'b0;
+			oy <= 7'b0;
+			ocolor <= 3'b0;
+			xcount <= 8'b0;
+			ycount <= 7'b0;
+			resetc <= 1'b0;	
+
+		end
+		else if (draw) begin
+			ox <= x + counter[1:0];
+			oy <= y + counter[3:2];
+			ocolor <= color;
+		end
+		else if (black) begin 
+			ox <= xcount;
+			oy <= ycount;
+			ocolor <= 3'b0;
+		end
+	end
+
+	always@(posedge clk) begin
+		if(!resetn) counter <= 4'b0000;
+		else if(counter == 6'd15) begin
+			counter <= 4'b0000;
+			resetc <= 1'b1;
+		end
+		else if (draw) begin
+			counter <= counter + 5'd1;
+			resetc <= 1'b0;
+		end
+		else if (black) begin
+			if (ycount != 4'd5 && xcount == 4'd8) begin
+				ycount <= ycount + 1;
+				xcount <= 8'd0;
+			end
+			else if (xcount != 4'd8) begin
+				xcount <= xcount + 1;
+			end
+		end
+	end
+endmodule
+
