@@ -1,0 +1,21 @@
+vlib work
+vlog part3.v
+vsim part3
+log {/*}
+add wave {/*}
+force {clk} 0 0ns, 1 {5ns} -r 10ns
+force reset 0
+force ParallelLoadn 1
+force RotateRight 0
+force ASRight 0
+Force Data_IN 0
+
+run 10ns
+
+force reset 1
+force ParallelLoadn 1
+force RotateRight 1
+force ASRight 0
+force Data_IN 8b'01010101
+
+run 10ns
