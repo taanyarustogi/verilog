@@ -1,0 +1,10 @@
+
+State Machine - |lab7|circuit:c0|control:C0|current_state
+Name current_state.S_CYCLE_2 current_state.S_CYCLE_1 current_state.S_CYCLE_0 current_state.S_LOAD_WAIT current_state.S_LOAD_Y_COLOR current_state.S_LOAD_X_WAIT current_state.S_LOAD_X 
+current_state.S_LOAD_X 0 0 0 0 0 0 0 
+current_state.S_LOAD_X_WAIT 0 0 0 0 0 1 1 
+current_state.S_LOAD_Y_COLOR 0 0 0 0 1 0 1 
+current_state.S_LOAD_WAIT 0 0 0 1 0 0 1 
+current_state.S_CYCLE_0 0 0 1 0 0 0 1 
+current_state.S_CYCLE_1 0 1 0 0 0 0 1 
+current_state.S_CYCLE_2 1 0 0 0 0 0 1 
